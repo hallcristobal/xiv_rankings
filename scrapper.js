@@ -5,14 +5,13 @@ const servers = require('./ServerList.json')
 const log4js = require("log4js");
 
 log4js.configure({
-    appenders: { default: { type: "file", filename: "output.log" }, console: { type: 'console'} },
+    appenders: { default: { type: "file", filename: "output.log" }, console: { type: 'console' } },
     categories: { default: { appenders: ["default", "console"], level: "trace" } }
 });
 
 const logger = log4js.getLogger("default");
 
 /**
- * 
  * @param {CheerioStatic} $ context
  * @param {CheerioElement} e element
  * @param {object[]} array parent array
@@ -105,20 +104,35 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const debug = true;
+
 (async () => {
     let queries = [];
     let arrays = [];
 
-    for (const dc of Object.keys(servers)) {
-        for (const server of servers[dc]) {
-            for (const job of jobs) {
-                logger.debug(`Querying ${dc} - ${server} - ${job}`);
-                queries.push(Query(server, dc, job));
+    if (debug) {
+        logger.debug("Debug mode active, only querying Diabolos");
+
+        for (const job of jobs) {
+            logger.debug(`Querying Diabolos - Crystal - ${job}`);
+            queries.push(Query("Diabolos", "Crystal", job));
+        }
+        let results = await Promise.all(queries);
+        arrays = arrays.concat(results);
+        await sleep(5000);
+        queries = [];
+    } else {
+        for (const dc of Object.keys(servers)) {
+            for (const server of servers[dc]) {
+                for (const job of jobs) {
+                    logger.debug(`Querying ${dc} - ${server} - ${job}`);
+                    queries.push(Query(server, dc, job));
+                }
+                let results = await Promise.all(queries);
+                arrays = arrays.concat(results);
+                await sleep(5000);
+                queries = [];
             }
-            let results = await Promise.all(queries);
-            arrays = arrays.concat(results);
-            await sleep(5000);
-            queries = [];
         }
     }
 
