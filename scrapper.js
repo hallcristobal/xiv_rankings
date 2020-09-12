@@ -14,9 +14,9 @@ const logger = log4js.getLogger("default");
 /**
  * @param {CheerioStatic} $ context
  * @param {CheerioElement} e element
- * @param {object[]} array parent array
+ * @param {IRanking[]} array parent array
  */
-function parseElementForRanking($, e, array) {
+function parseElementForRanking($, e, array, server, datacenter) {
     const nameFcElement = $("p", ".ranking-name", e).map((i, e) => $(e).text()).get();
 
     let name = nameFcElement[0];
@@ -58,7 +58,9 @@ function parseElementForRanking($, e, array) {
         free_company_crest_urls: fcCrestUrls != null && fcCrestUrls.length > 0 ? fcCrestUrls : null,
         free_company_url: fcUrl != null ? `https://na.finalfantasyxiv.com${fcUrl}` : null,
         score: parseInt($("p", ".ranking-score", e).text()),
-        score_change: scoreChange
+        score_change: scoreChange,
+        server: server,
+        datacenter: datacenter
     });
 }
 
@@ -71,8 +73,8 @@ async function Query(server, dc, job) {
 
         const gotRankings = [];
 
-        $(".ranking-soyf .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings));
-        $(".ranking-wrapper .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings));
+        $(".ranking-soyf .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings, server, dc));
+        $(".ranking-wrapper .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings, server, dc));
 
         logger.debug(`Finished Query ${dc} - ${server} - ${job}`);
         return {
@@ -104,7 +106,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const debug = true;
+const debug = false;
 
 (async () => {
     let queries = [];
