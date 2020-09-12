@@ -65,28 +65,47 @@ function parseElementForRanking($, e, array, server, datacenter) {
 }
 
 async function Query(server, dc, job) {
-    try {
-        const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/${job}?worldname=${server}&dcgroup=${dc}`;
-        const response = await got(url);
-        const $ = cheerio.load(response.body);
+    var response;
+    var tries = 1
+    while (tries < 6) {
+        try {
+            const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/${job}?worldname=${server}&dcgroup=${dc}`;
+            response = await got(url);
+            break;
+        } catch (e) {
+            logger.error(e);
+            logger.error(`Failed to get response, sleeping for 5 seconds and trying again: attempt ${++tries}`);
+            await sleep(5000);
+        } finally {
+            tries = tries + 1;
+        }
+    }
 
-
-        const gotRankings = [];
-
-        $(".ranking-soyf .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings, server, dc));
-        $(".ranking-wrapper .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, gotRankings, server, dc));
-
-        logger.debug(`Finished Query ${dc} - ${server} - ${job}`);
+    if (response === undefined || response === null) {
+        logger.error("Querying server failed over all attempts.", server, dc, job);
         return {
             server: server,
             job: job,
             dc: dc,
-            array: gotRankings,
-        };
-    } catch (e) {
-        logger.error(e);
-        return null;
+            array: null
+        }
     }
+
+    const $ = cheerio.load(response.body);
+    const topRankings = [];
+    const otherRankings = [];
+
+    $(".ranking-soyf .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, topRankings, server, dc));
+    $(".ranking-wrapper .ranking-list").find("li").each((i, e) => parseElementForRanking($, e, otherRankings, server, dc));
+
+    logger.debug(`Finished Query ${dc} - ${server} - ${job}`);
+    return {
+        server: server,
+        job: job,
+        dc: dc,
+        array: topRankings.concat(otherRankings),
+        shortArray: topRankings
+    };
 }
 
 let jobs = [
@@ -110,7 +129,7 @@ const debug = false;
 
 (async () => {
     let queries = [];
-    let arrays = [];
+    let fullArray = [];
 
     if (debug) {
         logger.debug("Debug mode active, only querying Diabolos");
@@ -120,7 +139,7 @@ const debug = false;
             queries.push(Query("Diabolos", "Crystal", job));
         }
         let results = await Promise.all(queries);
-        arrays = arrays.concat(results);
+        fullArray = fullArray.concat(results);
         await sleep(5000);
         queries = [];
     } else {
@@ -131,7 +150,14 @@ const debug = false;
                     queries.push(Query(server, dc, job));
                 }
                 let results = await Promise.all(queries);
-                arrays = arrays.concat(results);
+                results.forEach((e) => {
+                    if (e.array === null) {
+                        let message = `Invalid result in array: ${e.server}, ${e.dc}, ${e.job}, ${e.array}`;
+                        logger.error(message);
+                        throw message;
+                    }
+                })
+                fullArray = fullArray.concat(results);
                 await sleep(5000);
                 queries = [];
             }
@@ -139,19 +165,30 @@ const debug = false;
     }
 
     let rankings = {};
-    for (const array of arrays) {
+    let shortRankings = {};
+    for (const array of fullArray) {
         if (array === null)
             continue;
         if (rankings[array.dc] === undefined)
             rankings[array.dc] = {};
 
+        if (shortRankings[array.dc] === undefined)
+            shortRankings[array.dc] = {};
+
         if (rankings[array.dc][array.server] === undefined)
             rankings[array.dc][array.server] = {};
 
+        if (shortRankings[array.dc][array.server] === undefined)
+            shortRankings[array.dc][array.server] = {};
+
         rankings[array.dc][array.server][array.job] = array.array;
+        shortRankings[array.dc][array.server][array.job] = array.shortArray;
     }
 
-    fs.writeFile("output.json", Buffer.from(JSON.stringify(rankings, null, 4)), null, () => {
-        logger.debug("Wrote file");
-    })
+    fs.writeFile("output.json", Buffer.from(JSON.stringify(rankings)), null, () => {
+        logger.debug("Wrote full file.");
+    });
+    fs.writeFile("output_short.json", Buffer.from(JSON.stringify(shortRankings)), null, () => {
+        logger.debug("Wrote short file.");
+    });
 })();

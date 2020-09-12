@@ -4,6 +4,8 @@ var DatacenterSelectBox = $("#DatacenterSelectBox");
 var ServerSelectBox = $("#ServerSelectBox");
 var JobSelectBox = $("#JobSelectBox");
 
+var numberFormatter = new Intl.NumberFormat();
+
 function createServerHeader() {
     return $("<thead>").addClass("thead-light")
         .append([
@@ -25,8 +27,8 @@ function createRecordRow(idx, ranking) {
             $("<td>").append(
                 $("<a>").attr("href", ranking.lodestone_url).attr("target", "_blank").text(nameText)
             ),
-            $("<td>").text(ranking.score),
-            $("<td>").text(ranking.score_change),
+            $("<td>").text(numberFormatter.format(ranking.score)),
+            $("<td>").text(numberFormatter.format(ranking.score_change)),
         ]);
 }
 
@@ -38,8 +40,6 @@ function getAllForJob(job) {
     var rankings = [];
     for (var datacenter of Object.keys(jsonData)) {
         for (var server of Object.keys(jsonData[datacenter])) {
-            jsonData[datacenter][server][job].server = server;
-            jsonData[datacenter][server][job].datacenter = datacenter;
             rankings = rankings.concat(jsonData[datacenter][server][job]);
         }
     }
@@ -54,8 +54,6 @@ function getAllForDatacenter(datacenter, job) {
     /**@type IRanking[] */
     var rankings = [];
     for (var server of Object.keys(jsonData[datacenter])) {
-        jsonData[datacenter][server][job].server = server;
-        jsonData[datacenter][server][job].datacenter = datacenter;
         rankings = rankings.concat(jsonData[datacenter][server][job]);
     }
     return rankings;
@@ -67,22 +65,17 @@ function getAllForDatacenter(datacenter, job) {
  * @returns {IRanking[]}
  */
 function getAllForServer(datacenter, server, job) {
-    jsonData[datacenter][server][job].server = server;
-    jsonData[datacenter][server][job].datacenter = datacenter;
     return jsonData[datacenter][server][job];
 }
 
 function populateTables() {
     var table = $("<table>").addClass([
         "table",
-        "table-sm"
+        "table-sm",
+        "table-bordered"
     ]);
     var tableBody = $("<tbody>").attr("id", "MainTableBody");
     table.append(createServerHeader());
-    jsonData["Crystal"]["Diabolos"]["miner"].forEach(element => {
-        tableBody.append(createRecordRow(element.ranking, element));
-    });
-
     table.append(tableBody);
     $("#table").append(table);
 }
@@ -192,7 +185,11 @@ function init() {
 }
 
 (function () {
-    $.getJSON("output.json")
+    var params = new URLSearchParams(window.location.search)
+    console.debug(params);
+    var useFull = params.get("full") === 'true';
+    console.log("Use full lists: ", useFull);
+    $.getJSON(useFull ? "output.json" : "output_short.json")
         .then(function (data) {
             jsonData = data;
             init();
