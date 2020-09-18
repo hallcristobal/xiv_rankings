@@ -69,7 +69,7 @@ async function Query(server, dc, job) {
     var tries = 1
     while (tries < 6) {
         try {
-            const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/${job}?worldname=${server}&dcgroup=${dc}`;
+            const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/patch53/${job}?worldname=${server}&dcgroup=${dc}`;
             response = await got(url);
             break;
         } catch (e) {
@@ -134,10 +134,10 @@ const debug = false;
     if (debug) {
         logger.debug("Debug mode active, only querying Diabolos");
 
-        for (const job of jobs) {
-            logger.debug(`Querying Diabolos - Crystal - ${job}`);
-            queries.push(Query("Diabolos", "Crystal", job));
-        }
+        // for (const job of jobs) {
+        //     logger.debug(`Querying Diabolos - Crystal - ${job}`);
+            queries.push(Query("Faerie", "Aether", "fisher"));
+        // }
         let results = await Promise.all(queries);
         fullArray = fullArray.concat(results);
         await sleep(5000);
