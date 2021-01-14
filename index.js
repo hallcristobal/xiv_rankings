@@ -12,7 +12,7 @@ function createServerHeader() {
             $("<th>").text("Ranking"),
             $("<th>").text("Name"),
             $("<th>").text("Score"),
-            //$("<th>").text("Day Score Change")
+            $("<th>").text("Day Score Change")
         ]);
 }
 
@@ -28,7 +28,7 @@ function createRecordRow(idx, ranking) {
                 $("<a>").attr("href", ranking.lodestone_url).attr("target", "_blank").text(nameText)
             ),
             $("<td>").text(numberFormatter.format(ranking.score)),
-            //$("<td>").text(numberFormatter.format(ranking.score_change)),
+            $("<td>").text(numberFormatter.format(ranking.score_change)),
         ]);
 }
 

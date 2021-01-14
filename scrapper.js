@@ -69,7 +69,8 @@ async function Query(server, dc, job) {
     var tries = 1
     while (tries < 6) {
         try {
-            const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/patch53/${job}?worldname=${server}&dcgroup=${dc}`;
+            //const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/patch53/${job}?worldname=${server}&dcgroup=${dc}`;
+            const url = `https://na.finalfantasyxiv.com/lodestone/ishgardian_restoration/ranking/${job}?worldname=${server}&dcgroup=${dc}`;
             response = await got(url);
             break;
         } catch (e) {
